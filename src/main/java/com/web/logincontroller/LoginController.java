@@ -18,14 +18,16 @@ public class LoginController {
 	
 	@Autowired
 	private LoginDao logindata;
-	
+	//For CORS policy to allow the response
 	@CrossOrigin(origins = "*", allowedHeaders = "*")
+	//Maps the request based on logic model
 	@RequestMapping(value="/login",method=RequestMethod.POST)
 	public @ResponseBody ResponseEntity<String> logindata(@RequestBody LoginModel data) {
 		try {
 			String status = logindata.checkData(data);
 			System.out.println(status);
 			if(status.equals("SUCCESS")) {
+				//To convert the String to JSON
 				String res = new GsonBuilder().disableHtmlEscaping().create().toJson(status);
 				return ResponseEntity.ok(res);
 			} else {

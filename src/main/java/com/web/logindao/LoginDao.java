@@ -30,6 +30,7 @@ public class LoginDao {
 		}
 		return "FAILURE";
 	}
+	//Row Mapper to get each row from DB table and assign to the setter method
 	private static final class DetailMapper implements RowMapper<LoginModel> {
 		@Override
 		public LoginModel mapRow(ResultSet resultSet,int rowNum) throws SQLException {
