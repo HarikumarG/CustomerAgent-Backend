@@ -8,6 +8,15 @@ public class ServerModel {
 	String to;
 	String message;
 	
+	public ServerModel() {}
+	
+	public ServerModel(String Type,String IsAgent,String Name,String To,String Message) {
+		this.type = Type;
+		this.isAgent = IsAgent;
+		this.name = Name;
+		this.to = To;
+		this.message = Message;
+	}
 	public String getType() {
 		return type;
 	}
