@@ -2,6 +2,7 @@ package com.web.servercontroller;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class Server {
 	static HashMap<String,Session> users = new HashMap<String,Session>();
 	static LinkedHashMap<String,Session> agents = new LinkedHashMap<String, Session>();
 	static HashMap<String,Session> busy = new HashMap<String, Session>();
-	static HashMap<String,Integer> rejectcount = new HashMap<String,Integer>();
+	static HashMap<String,HashSet<String>> rejectlist = new HashMap<String,HashSet<String>>();
 	static HashMap<String,Session> fifo = new HashMap<String,Session>();
 	static int numberofagents = 0;
 	@OnOpen
@@ -82,12 +83,17 @@ public class Server {
 		session.getUserProperties().put("message","null");
 		if(data.getIsAgent().equals("false")) {
 			users.put(data.getName(),session);
-			session.getUserProperties().put("agentexist",false);
-			rejectcount.put(data.getName(),0);
-			System.out.println("RR algo called");
-			RRalgo(data.getName(),session);
+			if(agents.size() > 0) { 
+				System.out.println("RR algo called");
+				session.getUserProperties().put("agentexist",false);
+				RRalgo(data.getName(),session);
+			} else {
+				ServerModel packet = new ServerModel("noagent",data.getIsAgent(),data.getName(),"null","null");
+				sendTo(session,packet);
+			}
 		} else if(data.getIsAgent().equals("true")){
 			agents.put(data.getName(),session);
+			rejectlist.put(data.getName(),new HashSet<String>());
 			//numberofagents++;
 			System.out.println("Number of agents "+agents.size());
 		}
@@ -147,30 +153,29 @@ public class Server {
 				sendTo(conn,userpacket);
 			} else {
 				System.out.println(data.getTo()+": User is not online");
+				ServerModel packet = new ServerModel("leave",data.getIsAgent(),data.getName(),"null","null");
+				sendTo(session,packet);
+				if(fifo.containsKey(data.getName())) {
+					System.out.println(data.getName()+" :This agent is pushed back from fifo to available");
+					Session conns = fifo.get(data.getName());
+					agents.put(data.getName(),conns);
+					fifo.remove(data.getName());
+				}
 			}
 		} else if(!data.getName().equals("null") && !data.getTo().equals("null") && data.getIsAgent().equals("true") && 
 				data.getMessage().equals("no")) {
 			System.out.println("Agent rejected the request..Now call for next agent");
-		
-			Session conn = users.get(data.getTo());
-			String username = (String)conn.getUserProperties().get("name");
-			if(rejectcount.containsKey(username)) {
-				int count = rejectcount.get(username);
-				count++;
-				rejectcount.replace(username,count);
-				if(count > agents.size()) {
-					System.out.println("Count exceeded");
-					ServerModel packet = new ServerModel("busy",(String)conn.getUserProperties().get("isAgent")
-							,username,"null","null");
-					sendTo(conn,packet);
-				} else {
-					System.out.println("RR algo again called");
-					RRalgo(username,conn);
-				}
+			if(users.containsKey(data.getTo())) {
+				Session conn = users.get(data.getTo());
+				String username = (String)conn.getUserProperties().get("name");
+				System.out.println("RR algo again called");
+				conn.getUserProperties().replace("agentexist",false);
+				RRalgo(username,conn);
 			} else {
-				System.out.println("No count exist");
+				System.out.println(data.getTo()+": User is not online");
+				ServerModel packet = new ServerModel("leave",data.getIsAgent(),data.getName(),"null","null");
+				sendTo(session,packet);
 			}
-			
 			if(fifo.containsKey(data.getName())) {
 				System.out.println(data.getName()+" :This agent is pushed back from fifo to available");
 				Session conns = fifo.get(data.getName());
@@ -184,9 +189,6 @@ public class Server {
 		
 		if(sessionisAgent.equals("false") && !sessionName.equals("null")) {
 			System.out.println(sessionName+" : This Customer is left");
-			if(rejectcount.containsKey(sessionName)) {
-				rejectcount.remove(sessionName);
-			}
 			if(!sessionTo.equals("null")) {
 				System.out.println(sessionName+" is disconnecting from "+sessionTo);
 				if(busy.containsKey(sessionTo)) {
@@ -200,10 +202,12 @@ public class Server {
 				}
 			}
 			users.remove(sessionName);
+			for(Map.Entry<String,HashSet<String>> agent: rejectlist.entrySet()) {
+				agent.getValue().remove(sessionName);
+			}
 		} else if(sessionisAgent.equals("true") && !sessionName.equals("null")) {
 			//numberofagents--;
 			System.out.println(sessionName+" :This agent is left");
-			System.out.println("Number of agents still online "+agents.size());
 			if(!sessionTo.equals("null")) {
 				System.out.println(sessionName+" is disconnecting from "+sessionTo);
 				if(users.containsKey(sessionTo)) {
@@ -224,18 +228,21 @@ public class Server {
 			if(fifo.containsKey(sessionName)) {
 				fifo.remove(sessionName);
 			}
+			if(rejectlist.containsKey(sessionName)) {
+				rejectlist.remove(sessionName);
+			}
+			System.out.println("Number of agents still online "+agents.size());
 		}
 	}
 	
 	public void RRalgo(String username,Session session) {
-		System.out.println("RRalgo Number of agents "+agents.size());
-		String sessionisAgent = (String)session.getUserProperties().get("isAgent");
 		for(Map.Entry<String,Session> agent: agents.entrySet()) {
 			String agentname = agent.getKey();
 			Session conn = agent.getValue();
 			String connisAgent = (String)conn.getUserProperties().get("isAgent");
-			if(connisAgent.equals("true")) {
+			if(connisAgent.equals("true") && rejectlist.containsKey(agentname) && !rejectlist.get(agentname).contains(username)) {
 				session.getUserProperties().replace("agentexist",true);
+				rejectlist.get(agentname).add(username);
 				ServerModel packet = new ServerModel("ask",connisAgent,agentname,username,"null");
 				sendTo(conn,packet);
 				agents.remove(agentname);
@@ -244,8 +251,9 @@ public class Server {
 				break;
 			}
 		}
-		if(!(boolean)session.getUserProperties().get("agentexist")) {
-			ServerModel packet = new ServerModel("noagent",sessionisAgent,username,"null","null");
+		if(!(Boolean)session.getUserProperties().get("agentexist")) {
+			ServerModel packet = new ServerModel("busy",(String)session.getUserProperties().get("isAgent")
+					,username,"null","null");
 			sendTo(session,packet);
 		}
 	}
