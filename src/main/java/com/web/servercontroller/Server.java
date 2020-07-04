@@ -45,7 +45,7 @@ public class Server {
 	}
 	@OnError
 	public void onError(Session session,Throwable throwable) {
-		System.out.println("On error called");
+		System.out.println("On error called "+session.getUserProperties().get("name")+"-"+throwable.getMessage());
 	}
 	public void handler(Session session,ServerModel data) {
 		switch(data.getType()) {
@@ -112,13 +112,13 @@ public class Server {
 		if(agentConnectlist.get(data.getName()).size() == 0) {
 			movefrombusytoavailable(data.getName());
 		}
-		ServerModel packet = new ServerModel("leave",data.getIsAgent(),data.getName(),"null","null");
+		ServerModel packet = new ServerModel("leave",data.getIsAgent(),data.getName(),data.getTo(),"null");
 		sendTo(session,packet);
 		if(users.containsKey(data.getTo())) {
 			Session conn = users.get(data.getTo());
 			conn.getUserProperties().replace("to","null");
 			ServerModel temppacket = new ServerModel("leave",(String)conn.getUserProperties().get("isAgent"),
-					(String)conn.getUserProperties().get("name"),"null","null");			
+					(String)conn.getUserProperties().get("name"),data.getTo(),"null");			
 			sendTo(conn,temppacket);
 		}
 	}
@@ -188,7 +188,7 @@ public class Server {
 				conn.getUserProperties().replace("agentexist",false);
 				if(agents.size() > 0) {
 					RRalgo(username,conn);
-				} else if(busy.size() > 0) {
+				} else {
 					RRbusyalgo(username,conn);
 				}
 			} else {
