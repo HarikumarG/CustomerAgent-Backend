@@ -13,10 +13,14 @@ import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
+
+import com.web.pushnotification.PushNotification;
+import com.web.serverdao.ServerDao;
 import com.web.servermodel.ServerModel;
 
 @ServerEndpoint(value = "/chat", encoders = ServerModelEncoder.class,decoders = ServerModelDecoder.class)
 public class Server {
+
 	static HashMap<String,Session> users = new HashMap<String,Session>();
 	static LinkedHashMap<String,Session> agents = new LinkedHashMap<String, Session>();
 	static HashMap<String,Session> busy = new HashMap<String, Session>();
@@ -87,13 +91,15 @@ public class Server {
 			session.getUserProperties().put("to","null");
 			users.put(data.getName(),session);
 			session.getUserProperties().put("agentexist",false);
-			if(agents.size() > 0) { 
+			if(agents.size() > 0) {
 				System.out.println("RR algo called");
 				RRalgo(data.getName(),session);
 			} else if(busy.size() == 0){
-				ServerModel packet = new ServerModel("noagent",data.getIsAgent(),data.getName(),"null","null");
-				sendTo(session,packet);
+				System.out.println("PushNotification called");
+				PushNotification notify = new PushNotification(data.getName());
+				notify.start();
 			} else {
+				System.out.println("RRbusy algo called");
 				RRbusyalgo(data.getName(),session);
 			}
 		} else if(data.getIsAgent().equals("true")){
@@ -187,8 +193,10 @@ public class Server {
 				System.out.println("RR algo again called");
 				conn.getUserProperties().replace("agentexist",false);
 				if(agents.size() > 0) {
+					System.out.println("RR algo called");
 					RRalgo(username,conn);
 				} else {
+					System.out.println("RRbusy algo called");
 					RRbusyalgo(username,conn);
 				}
 			} else {
@@ -267,6 +275,12 @@ public class Server {
 				agentConnectlist.remove(sessionName);
 			}
 			System.out.println("Number of agents still online "+agents.size());
+			
+			ServerDao logout = new ServerDao();
+			boolean changed = logout.setLogoutTime(sessionName);
+			if(changed) {
+				System.out.println("Logout time updated for "+sessionName);
+			}
 		}
 	}
 	
@@ -343,6 +357,29 @@ public class Server {
 			System.out.println("IOException Error in sendTo :"+e.getMessage());
 		} catch (EncodeException e) {
 			System.out.println("EncodeException Error in sendTo :"+e.getMessage());
+		}
+	}
+	
+	public void sendNoAgent(String username) {
+		Session s = users.get(username);
+		ServerModel packet = new ServerModel("noagent","false",username,"null","null");
+		sendTo(s,packet);
+	}
+	public void callToConnect(String username) {
+		System.out.println("Call to connect called");
+		if(users.containsKey(username)) {
+			Session session = users.get(username);
+			if(agents.size() > 0) {
+				System.out.println("RR algo called");
+				RRalgo(username,session);
+			} else if(busy.size() == 0){
+				System.out.println("PushNotification called");
+				PushNotification notify = new PushNotification(username);
+				notify.start();
+			} else {
+				System.out.println("RRbusy algo called");
+				RRbusyalgo(username,session);
+			}
 		}
 	}
 }
