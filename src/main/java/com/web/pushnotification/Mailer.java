@@ -13,6 +13,7 @@ import javax.mail.PasswordAuthentication;
 
 public class Mailer {
 	
+	//function to send email
 	public static void sendMail(String to,String agentname,String username) {
 		
 		Properties props = new Properties();

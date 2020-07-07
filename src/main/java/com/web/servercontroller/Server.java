@@ -27,7 +27,8 @@ public class Server {
 	static HashMap<String,HashSet<String>> askedlist = new HashMap<String,HashSet<String>>();
 	static HashMap<String,HashSet<String>> agentConnectlist = new HashMap<String,HashSet<String>>();
 	static HashMap<String,Session> fifo = new HashMap<String,Session>();
-	static int numberofagents = 0;
+	
+	
 	@OnOpen
 	public void open(Session s) throws IOException, EncodeException{
 		System.out.println("One connection is connected");
@@ -51,6 +52,8 @@ public class Server {
 	public void onError(Session session,Throwable throwable) {
 		System.out.println("On error called "+session.getUserProperties().get("name")+"-"+throwable.getMessage());
 	}
+	
+	
 	public void handler(Session session,ServerModel data) {
 		switch(data.getType()) {
 			case "login": {
@@ -83,6 +86,8 @@ public class Server {
 			}
 		}
 	}
+	
+	
 	public void handleLogin(Session session,ServerModel data) {
 		System.out.println("User logged in as "+data.getName()+" as "+data.getIsAgent());
 		session.getUserProperties().put("isAgent",data.getIsAgent());
@@ -111,7 +116,6 @@ public class Server {
 	}
 	public void handleLeave(Session session,ServerModel data) {
 		System.out.println(data.getName()+" is disconnecting from "+data.getTo());
-		//session.getUserProperties().replace("to","null");
 		if(agentConnectlist.get(data.getName()).contains(data.getTo())) {
 			agentConnectlist.get(data.getName()).remove(data.getTo());
 		}
@@ -160,7 +164,6 @@ public class Server {
 				Session conn = users.get(data.getTo());
 				movefromavailabletobusy(data.getName());
 				conn.getUserProperties().replace("to",data.getName());
-				//session.getUserProperties().replace("to",data.getTo());
 				agentConnectlist.get(data.getName()).add(data.getTo());
 				ServerModel agentpacket = new ServerModel("connected",(String)session.getUserProperties().get("isAgent"),
 						(String)session.getUserProperties().get("name"),data.getTo(),"null");
@@ -227,7 +230,6 @@ public class Server {
 					Session conn = busy.get(sessionTo);
 					String connName = (String)conn.getUserProperties().get("name");
 					String connisAgent = (String)conn.getUserProperties().get("isAgent");
-					//conn.getUserProperties().replace("to","null");
 					if(agentConnectlist.get(connName).contains(sessionName)) {
 						agentConnectlist.get(connName).remove(sessionName);
 					}
@@ -243,7 +245,6 @@ public class Server {
 				agent.getValue().remove(sessionName);
 			}
 		} else if(sessionisAgent.equals("true") && !sessionName.equals("null")) {
-			//numberofagents--;
 			System.out.println(sessionName+" :This agent is left");
 			if(sessionTo.equals("null")) {
 				HashSet<String> temp = agentConnectlist.get(sessionName);
@@ -284,6 +285,7 @@ public class Server {
 		}
 	}
 	
+	
 	public void RRalgo(String username,Session session) {
 		for(Map.Entry<String,Session> agent: agents.entrySet()) {
 			String agentname = agent.getKey();
@@ -295,7 +297,6 @@ public class Server {
 				ServerModel packet = new ServerModel("ask",connisAgent,agentname,username,"null");
 				sendTo(conn,packet);
 				agents.remove(agentname);
-				//numberofagents--;
 				fifo.put(agentname,conn);
 				break;
 			}
@@ -327,6 +328,8 @@ public class Server {
 			sendTo(session,packet);
 		}
 	}
+	
+	
 	public void movefromavailabletobusy(String agentname) {
 		if(!agentname.equals("null") && !busy.containsKey(agentname) && fifo.containsKey(agentname)) {			
 			Session conn = fifo.get(agentname);
@@ -344,7 +347,6 @@ public class Server {
 			Session conn = busy.get(agentname);
 			busy.remove(agentname);
 			agents.put(agentname,conn);
-			//numberofagents++;
 			System.out.println("Move successful from busy to available "+agentname);
 		} else {
 			System.out.println("Move unsuccessful from busy to available");
@@ -359,6 +361,7 @@ public class Server {
 			System.out.println("EncodeException Error in sendTo :"+e.getMessage());
 		}
 	}
+	
 	
 	public void sendNoAgent(String username) {
 		Session s = users.get(username);

@@ -20,7 +20,7 @@ public class ServerDao {
 			System.out.println(e.getMessage());
 		}
 	}
-	
+	//function to update logout time for agent
 	public boolean setLogoutTime(String agentname) {
 		Statement stmt;
 		try {
@@ -38,7 +38,7 @@ public class ServerDao {
 			return false;
 		}
 	}
-	
+	//function to get agent who is not yet asked and has last logout time
 	public String[] getAgentName() {
 		Statement stmt;
 		String agentdetails[] = new String[2];
@@ -57,7 +57,7 @@ public class ServerDao {
 			return agentdetails;
 		}
 	}
-	
+	//after getting that agent update is asked attribute to true
 	public void updateIsAsked(String agentname) {
 		Statement stmt;
 		try {

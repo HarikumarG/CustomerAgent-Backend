@@ -3,6 +3,7 @@ package com.web.pushnotification;
 import com.web.servercontroller.Server;
 import com.web.serverdao.ServerDao;
 
+//thread class to send email for agent to come online
 public class PushNotification extends Thread {
 		
 	String user;

@@ -10,16 +10,10 @@ import com.web.servermodel.ServerModel;
 public class ServerModelDecoder implements Decoder.Text<ServerModel>{
 
 	@Override
-	public void init(EndpointConfig config) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void init(EndpointConfig config) {}
 
 	@Override
-	public void destroy() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void destroy() {}
 
 	@Override
 	public ServerModel decode(String s) throws DecodeException {
