@@ -2,6 +2,12 @@
 
 This is an java project wrapped with spring-mvc framework which is the backend for customer agent communcation app.
 
+The master branch is old code and with less features and all the core business logic are in node js.
+
+https://github.com/HarikumarG/CustomerAgent-Webserver
+
+The masterv1 branch is new updated code with all the additional features and here all the core logic are in java itself.
+
 # Prerequisites
 
 1. Install Java (openjdk version 11.0.7)
