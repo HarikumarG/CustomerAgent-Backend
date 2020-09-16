@@ -8,7 +8,7 @@ https://github.com/HarikumarG/CustomerAgent-Webserver
 
 The masterv1 branch is new updated code with all the additional features and here all the core logic are in java itself.
 
-https://github.com/HarikumarG/CustomerAgent-Frontend (For Frontend)
+https://github.com/HarikumarG/CustomerAgent-Frontend (branch masterv1) (For Frontend)
 
 # Prerequisites
 
